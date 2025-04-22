@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>Chat Santé</title>
+  <style>
+    body {
+      font-family: Arial;
+      background: #f0f0f0;
+      margin: 0;
+      padding: 20px;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      padding-top: 80px;
+    }
+
+    header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 60px;
+      background: #1a76d1;
+      color: white;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      font-weight: bold;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+      z-index: 999;
+    }
+
+    header::before {
+      content: "🩺";
+      margin-right: 10px;
+      font-size: 22px;
+    }
+
+    #chatbox {
+      display: flex;
+      flex-direction: column;
+      background: white;
+      padding: 10px;
+      border-radius: 10px;
+      max-width: 600px;
+      width: 100%;
+      height: 80vh;
+      box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+      position: relative;
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding-right: 10px;
+    }
+
+    .message {
+      margin: 10px 0;
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 15px;
+      word-wrap: break-word;
+      display: inline-block;
+    }
+
+    .user {
+      background-color: #007bff;
+      color: white;
+      align-self: flex-end;
+      float: right;
+      border-bottom-right-radius: 0;
+      clear: both;
+    }
+
+    .bot {
+      background-color: #333;
+      color: white;
+      align-self: flex-start;
+      float: left;
+      border-bottom-left-radius: 0;
+      clear: both;
+    }
+
+    #chat-form {
+      display: flex;
+      gap: 8px;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid #ccc;
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 10px;
+      border-radius: 20px;
+      border: 1px solid #ccc;
+    }
+
+    .send-btn, .mic-btn, .read-btn {
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-size: 20px;
+      padding: 0 6px;
+    }
+
+    .custom-translate {
+      position: fixed;
+      top: 70px;
+      right: 20px;
+      z-index: 1000;
+    }
+
+    .lang-icon {
+      font-size: 22px;
+      background: #1a76d1;
+      color: white;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+    }
+
+    .translate-select-box {
+      display: none;
+      position: absolute;
+      top: 50px;
+      right: 0;
+      background: white;
+      padding: 8px;
+      border-radius: 6px;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+    }
+
+    input:focus {
+      outline: 2px solid #1a76d1;
+    }
+
+    @media (max-width: 768px) {
+      body {
+        padding: 10px;
+        padding-top: 80px;
+      }
+
+      #chatbox {
+        height: 90vh;
+        max-width: 100%;
+        padding: 8px;
+      }
+
+      .message {
+        max-width: 100%;
+        font-size: 15px;
+      }
+
+      #chat-form {
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .send-btn, .mic-btn, .read-btn {
+        font-size: 18px;
+      }
+
+      #user-input {
+        font-size: 16px;
+        padding: 8px;
+      }
+
+      .lang-icon {
+        font-size: 18px;
+        padding: 8px 12px;
+      }
+
+      .translate-select-box {
+        top: 45px;
+        right: 0;
+        width: 200px;
+      }
+    }
+
+    @media (max-width: 480px) {
+      .lang-icon {
+        font-size: 16px;
+        padding: 6px 10px;
+      }
+
+      #chatbox {
+        padding: 6px;
+      }
+
+      .message {
+        font-size: 14px;
+      }
+
+      #user-input {
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>Chat Santé – Assistance Médicale Gratuit</header>
+
+  <div class="custom-translate">
+    <button class="lang-icon" id="toggleTranslate">🌐</button>
+    <div class="translate-select-box" id="translateBox">
+      <div id="google_translate_element"></div>
+    </div>
+  </div>
+
+  <div id="chatbox">
+    <div id="messages"></div>
+    <form id="chat-form">
+      <input type="text" id="user-input" placeholder="Entrez un mot clé" required>
+      <button type="button" class="mic-btn" id="start-voice">🎤</button>
+      <button type="button" class="read-btn" id="read-last">🔊</button>
+      <button type="submit" class="send-btn">📤</button>
+    </form>
+  </div>
+
+  <script>
+    const form = document.getElementById('chat-form');
+    const input = document.getElementById('user-input');
+    const messages = document.getElementById('messages');
+    const micBtn = document.getElementById('start-voice');
+    const readBtn = document.getElementById('read-last');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const userText = input.value.trim();
+      if (!userText) return;
+
+      messages.innerHTML += `<div class="message user">${userText}</div>`;
+      input.value = '';
+      messages.scrollTop = messages.scrollHeight;
+
+      const response = await fetch('chatbot.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: userText })
+      });
+
+      const data = await response.json();
+      messages.innerHTML += `<div class="message bot">${data.response}</div>`;
+      messages.scrollTop = messages.scrollHeight;
+    });
+
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (SpeechRecognition) {
+      const recognition = new SpeechRecognition();
+      recognition.lang = 'fr-FR';
+      recognition.interimResults = false;
+
+      micBtn.addEventListener('click', () => {
+        recognition.start();
+      });
+
+      recognition.onresult = (event) => {
+        const transcript = event.results[0][0].transcript.toLowerCase();
+        input.value = transcript;
+        input.placeholder = transcript;
+
+        if (transcript.includes("envoyer")) {
+          form.requestSubmit();
+        }
+      };
+    } else {
+      micBtn.disabled = true;
+      micBtn.title = "Reconnaissance vocale non supportée";
+    }
+
+    readBtn.addEventListener('click', () => {
+      const botMessages = document.querySelectorAll('.message.bot');
+      if (botMessages.length === 0) return;
+
+      const lastBotMessage = botMessages[botMessages.length - 1].textContent;
+
+      const utterance = new SpeechSynthesisUtterance(lastBotMessage);
+      utterance.lang = 'fr-FR';
+      window.speechSynthesis.speak(utterance);
+    });
+  </script>
+
+  <script>
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement({
+        pageLanguage: 'fr',
+        includedLanguages: 'fr,en,de,es,it,mg,pt,zh-CN,ar,ru',
+        layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        autoDisplay: false
+      }, 'google_translate_element');
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+      const toggleBtn = document.getElementById("toggleTranslate");
+      const translateBox = document.getElementById("translateBox");
+
+      toggleBtn.addEventListener("click", function (e) {
+        e.stopPropagation();
+        translateBox.style.display = translateBox.style.display === "block" ? "none" : "block";
+      });
+
+      document.addEventListener("click", function () {
+        translateBox.style.display = "none";
+      });
+
+      translateBox.addEventListener("click", function (e) {
+        e.stopPropagation();
+      });
+    });
+  </script>
+
+  <script src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"></script>
+</body>
+</html>
